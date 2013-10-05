@@ -1,4 +1,4 @@
-## ACRUD - Automattic Create, Read, Update, & Delete
+## Automattic Create, Read, Update, & Delete
 
 Year after year we build database schema's, CRUD via Models or ORM's, and validation libraries to make sure only valid data is stored in our database. Basically, we write the same code many times over.
 

@@ -1,0 +1,19 @@
+{
+    "name": "xeoncross/acrud",
+	"type": "library",
+	"keywords": ["scaffolding", "crud", "mysql", "sqlite", "postgresql"],
+	"license": "MIT",
+    "description": "Automatic database scaffolding with intelligent auto-validation based on schema (for MySQL, SQLite, & PostgreSQL)",
+    "authors": [
+		{
+			"name": "David Pennington",
+			"homepage": "http://davidpennington.me"
+		}
+    ],
+    "require": {
+		"php": ">=5.3.0"
+    },
+	"autoload": {
+        "psr-0": { "ACRUD": "src/" }
+    },
+}
