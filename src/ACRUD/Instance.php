@@ -78,8 +78,12 @@ class Instance extends DB
 	 * @param array $foreign_keys
 	 * @return array
 	 */
-	public function validate($table, array $data, array $columns)
+	public function validate($table, array $data, array $columns = null)
 	{
+		if( ! $columns) {
+			$this->columns = $this->getColumns();
+		}
+
 		// Make sure only valid columns for this table are being submitted
 		if($keys = array_diff_key($data, $columns)) {
 

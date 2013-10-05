@@ -12,7 +12,52 @@ This enables you to design a schema and immediately begin prototyping and buildi
 
 ------
 
-## Show Me
+## Composer Quickstart
+
+Add the following to your `composer.json` config file and then run `composer install`.
+
+	{
+		"require" : {
+			"xeoncross/acrud": "dev-master"
+		}
+	}
+
+Inside your project include the composer autoloader.
+
+	<?php
+	require('vendor/autoload.php');
+
+Then simply pass a PDO object to the ACRUD instance factory.
+
+	$pdo = new PDO(
+		'sqlite:testdb.db',
+		0,
+		0,
+		array(
+			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+			PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ
+		)
+	);
+
+	$acrud = \ACRUD\Instance::factory($pdo);
+
+	$errors = $acrud->validate('user', $_POST['user']);
+
+	if($errors) {
+		die(print_r($errors));
+	} else {
+		$acrud->save('user', $_POST['user']);
+	}
+
+If you would like to get your hands dirty with more meta-data, these methods will provide more details about your schema.
+
+	$tables = $acrud->getTables();
+	$foreignKeys = $acrud->getForeignKeys();
+	$columns = $acrud->getColumns();
+
+------
+
+## Self-Contained ACRUD API Server
 
 I'm assuming you have a website like `http://example.com` (or `http://example.loc` if you know how to use vhosts). Checkout ACRUD into a subfolder like `http://example.com/acrud`.
 
