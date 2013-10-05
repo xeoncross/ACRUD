@@ -61,7 +61,7 @@ If you would like to get your hands dirty with more meta-data, these methods wil
 
 I'm assuming you have a website like `http://example.com` (or `http://example.loc` if you know how to use vhosts). Checkout ACRUD into a subfolder like `http://example.com/acrud`.
 
-Setup a rewrite rule to forward all traffic to index.php. if you use Nginx something like this should work:
+Setup a rewrite rule to forward all traffic to `acrud.php`. if you use Nginx something like this should work:
 
 	location /acrud {
 	    rewrite ^/acrud/(.*)$ /acrud/acrud.php/$1 break;
@@ -74,7 +74,7 @@ For all you older Apache people something like this should work.
 	RewriteEngine on
 	RewriteCond %{REQUEST_FILENAME} !-f
 	RewriteCond %{REQUEST_FILENAME} !-d
-	RewriteRule ^/acrud/(.*)$ acrud.php [L,QSA]
+	RewriteRule ^/acrud/(.*)$ acrud/acrud.php [L,QSA]
 
 
 ### acrud.php
@@ -83,9 +83,14 @@ Create a file in the `/acrud` folder called `acrud.php` and paste the following 
 
 	<?php
 
+	// If using Composer
+	require("vendor/autoload.php");
+
+	/* Or if you downloaded ACRUD manually and pasted it into that folder
 	spl_autoload_register(function ($class) {
-	    require __DIR__ . '/' . str_replace('\\', '/', $class) . '.php';
+	    require __DIR__ . '/acrud/' . str_replace('\\', '/', $class) . '.php';
 	});
+	*/
 
 	function getACRUD()
 	{
