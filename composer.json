@@ -15,5 +15,5 @@
     },
 	"autoload": {
         "psr-0": { "ACRUD": "src/" }
-    },
+    }
 }
