@@ -73,6 +73,12 @@ class Router
 					$match[0] = $this->app_path;
 					$result = call_user_func_array($closure, $match);
 
+					// HTML?
+					if(is_string($result)) {
+						header('Content-Type: text/html; charset="utf-8"');
+						die($result);
+					}
+					
 					// Standard AJAX request?
 					if(strtolower(getenv('HTTP_X_REQUESTED_WITH')) === 'xmlhttprequest') {
 						header('Content-Type: application/json');
