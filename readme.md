@@ -199,6 +199,13 @@ Create a file in the `/acrud` folder called `acrud.php` and paste the following 
 	});
 
 	$router->run();
+	
+	// If we made it this far, we didn't find a matching route
+	header('HTTP/1.0 404 Not Found');
+	echo "<h1>404 Not Found</h1>";
+	echo "The page that you have requested could not be found.";
+	exit();
+
 
 
 ## Go for a test spin!
