@@ -84,18 +84,19 @@ class Instance extends DB
 			$this->columns = $this->getColumns();
 		}
 
+		$errors = array();
+
 		// Make sure only valid columns for this table are being submitted
 		if($keys = array_diff_key($data, $columns)) {
 
 			// Each of these unexpected columns needs to be shared
 			foreach($keys as $key => $v) {
-				$keys[$key] = 'nonexistent';
+				$errors[$key] = 'invalid';
 			}
 
-			return $keys;
 		}
 
-		$errors = array();
+		if($errors) return $errors;
 
 		// Make sure all the required fields are set
 		foreach($columns as $name => $column) {
@@ -119,7 +120,7 @@ class Instance extends DB
 			if(empty($data[$name])) {
 
 				if( ! $column['default'] AND ! $column['nullable']) {
-					$errors[$name] = 'empty';
+					$errors[$name] = 'required';
 				}
 
 				continue;
