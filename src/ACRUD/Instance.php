@@ -227,7 +227,9 @@ class Instance extends DB
 
 		if($id) {
 
-			return $this->update($table, $data, $id);
+			if($this->update($table, $data, $id)) {
+				return $id;
+			}
 
 		} else {
 
