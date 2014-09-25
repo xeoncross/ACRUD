@@ -35,11 +35,14 @@ class Router
 
 	public function __construct($app_path = '/', $uri_path = null)
 	{
+		if($uri_path === NULL) {
+			$uri_path = rawurldecode(trim(parse_url(getenv('REQUEST_URI'), PHP_URL_PATH), '/'));
+		}
+
 		$app_path = trim($app_path, '/');
 
 		// To work in subdirectories, remove the app_path from the requested URI
-		if($uri_path === NULL) {
-			$uri_path = trim(getenv('REQUEST_URI'), '/');
+		if($app_path) {
 			$uri_path = trim(substr($uri_path, mb_strlen($app_path)), '/');
 		}
 
