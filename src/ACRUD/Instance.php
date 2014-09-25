@@ -75,10 +75,11 @@ class Instance extends DB
 	 *
 	 * @param array $data
 	 * @param array $columns
+	 * @param array $error_messages
 	 * @param array $foreign_keys
 	 * @return array
 	 */
-	public function validate($table, array $data, array $columns = null)
+	public function validate($table, array $data, array $error_messages, array $columns = null)
 	{
 		if( ! $columns) {
 			$this->columns = $this->getColumns();
@@ -91,7 +92,7 @@ class Instance extends DB
 
 			// Each of these unexpected columns needs to be shared
 			foreach($keys as $key => $v) {
-				$errors[$key] = 'invalid';
+				$errors[$key] = sprintf($error_messages['invalid'], $key, $table);
 			}
 
 		}
@@ -108,7 +109,7 @@ class Instance extends DB
 
 					// Does this record even exist?
 					if( ! $this->column("SELECT 1 FROM $table WHERE $name = ?", array($data[$name]))) {
-						$errors[$name] = 'missing';
+						$errors[$name] = sprintf($error_messages['missing'], $name, $table);
 					}
 
 				}
@@ -117,10 +118,10 @@ class Instance extends DB
 			}
 
 			// The column can only be empty if there is a default or null is allowed
-			if(empty($data[$name])) {
+			if(empty($data[$name]) AND ! (isset($data[$name]) AND $data[$name] === "0")) {
 
 				if( ! $column['default'] AND ! $column['nullable']) {
-					$errors[$name] = 'required';
+					$errors[$name] = sprintf($error_messages['required'], $name, $table);
 				}
 
 				continue;
@@ -133,7 +134,7 @@ class Instance extends DB
 				$fk_table = $columns[$name]['table'];
 
 				if( ! $this->column("SELECT 1 FROM $fk_table WHERE $fk_column = ?", array($data[$name]))) {
-					$errors[$name] = 'foreign_key';
+					$errors[$name] = sprintf($error_messages['foreign_key'], $name, $table, $fk_table);
 				}
 
 				continue;
@@ -143,7 +144,7 @@ class Instance extends DB
 			if(strpos($column['type'], 'int') !== FALSE) {
 
 				if( ! ctype_digit($data[$name])) {
-					$errors[$name] = 'integer';
+					$errors[$name] = sprintf($error_messages['integer'], $name, $table);
 					continue;
 				}
 
@@ -153,7 +154,7 @@ class Instance extends DB
 			if(strpos($column['type'], 'text') !== FALSE OR strpos($column['type'], 'char') !== FALSE) {
 
 				if($column['length'] AND mb_strlen($data[$name]) > $column['length']) {
-					$errors[$name] = 'length';
+					$errors[$name] = sprintf($error_messages['length'], $name, $table, $column['length']);
 					continue;
 				}
 
@@ -214,11 +215,25 @@ class Instance extends DB
 			}
 		}
 
+		// Update this on creation or update
+		if(isset($columns['updated_at'])) {
+			$data['updated_at'] = date("Y-m-d H:i:s");
+		}
+		
+		// Not sure if we want to do this
+		// It's safer, but might break some special history-rewriting need
+		// Nah, just use another column if you want to do that
+		unset($data['created_at']);
+
 		if($id) {
 
 			return $this->update($table, $data, $id);
 
 		} else {
+
+			if(isset($columns['created_at'])) {
+				$data['created_at'] = date("Y-m-d H:i:s");
+			}
 
 			return $this->insert($table, $data);
 		}
