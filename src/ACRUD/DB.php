@@ -37,6 +37,9 @@ class DB
 	// PostgreSQL needs to use RETURNING on insert
 	public $postgresql = false;
 
+	// Store of all queries
+	public $queries = array();
+
 	/**
 	 * Create a new DB object with a PDO connection instance
 	 *
@@ -127,7 +130,7 @@ class DB
 	 */
 	public function query($query, $params = NULL)
 	{
-		$statement = $this->pdo->prepare(strtr($query, '`', $this->i));
+		$statement = $this->pdo->prepare($this->queries[] = strtr($query, '`', $this->i));
 		$statement->execute($params);
 		return $statement;
 	}
