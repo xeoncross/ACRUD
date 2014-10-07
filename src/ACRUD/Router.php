@@ -65,7 +65,7 @@ class Router
 	/**
 	 * Run the routes
 	 */
-	public function run()
+	public function run($catch = true)
 	{
 		try {
 			
@@ -94,6 +94,10 @@ class Router
 			}
 
 		} catch (\Exception $e) {
+
+			if ( ! $catch) {
+				return $e;
+			}
 
 			error_log(''. $e);
 			header('Content-Type: application/json');

@@ -68,10 +68,17 @@ class MySQL extends Instance
 
 			if($column) {
 
+				$type = $this->mapType($column->DATA_TYPE);
+				
+				// MySQL boolean == tinyint(1)
+				if($column->COLUMN_TYPE == 'tinyint(1)') {
+					$type = 'boolean';
+				}
+
 				$columns[$column->TABLE_NAME][$column->COLUMN_NAME] = array(
 					'default' => $column->COLUMN_DEFAULT ?: null,
 					'nullable' => $column->IS_NULLABLE === 'YES',
-					'type' => $this->mapType($column->DATA_TYPE),
+					'type' => $type,
 					'length' => $column->CHARACTER_MAXIMUM_LENGTH ?: null,
 					'precision' => $column->NUMERIC_PRECISION ?: null,
 					'scale' => $column->NUMERIC_SCALE ?: null,
