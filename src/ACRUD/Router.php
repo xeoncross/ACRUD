@@ -31,12 +31,17 @@ class Router
 
 	public $app_path = null;
 	public $uri_path = null;
+	public $http_method = null;
 	public $routes = array();
 
-	public function __construct($app_path = '/', $uri_path = null)
+	public function __construct($app_path = '/', $uri_path = null, $http_method = null)
 	{
 		if($uri_path === NULL) {
 			$uri_path = rawurldecode(trim(parse_url(getenv('REQUEST_URI'), PHP_URL_PATH), '/'));
+		}
+
+		if($http_method === null) {
+			$http_method = $_SERVER['REQUEST_METHOD'];
 		}
 
 		$app_path = trim($app_path, '/');
@@ -48,6 +53,7 @@ class Router
 
 		$this->app_path = $app_path;
 		$this->uri_path = $uri_path;
+		$this->http_method = $http_method;
 	}
 
 	/**
@@ -76,27 +82,22 @@ class Router
 					$match[0] = $this->app_path;
 					$result = call_user_func_array($closure, $match);
 
-					// HTML?
-					if(is_string($result)) {
-						header('Content-Type: text/html; charset="utf-8"');
-						die($result);
-					}
-					
-					// Standard AJAX request?
-					if(strtolower(getenv('HTTP_X_REQUESTED_WITH')) === 'xmlhttprequest') {
-						header('Content-Type: application/json');
+					// JSON
+					if(is_array($result)) {
+						header('Content-Type: application/json; charset="utf-8"');
 						die(json_encode($result));
 					}
 
-					// Direct access? Show the data formatted for debugging
-					die('<pre>' . print_r($result, 1) . '<pre>');
+					header('Content-Type: text/html; charset="utf-8"');
+					die($result);
+
 				}
 			}
 
 		} catch (\Exception $e) {
 
 			if ( ! $catch) {
-				return $e;
+				throw $e;
 			}
 
 			error_log(''. $e);
