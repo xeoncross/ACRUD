@@ -133,7 +133,7 @@ class Instance extends DB
 				$fk_column = $columns[$name]['column'];
 				$fk_table = $columns[$name]['table'];
 
-				if( ! $this->column("SELECT 1 FROM $fk_table WHERE $fk_column = ?", array($data[$name]))) {
+				if( ! $this->column("SELECT 1 FROM `$fk_table` WHERE `$fk_column` = ?", array($data[$name]))) {
 					$errors[$name] = sprintf($error_messages['foreign_key'], $name, $table, $fk_table);
 				}
 
