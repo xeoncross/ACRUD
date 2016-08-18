@@ -144,43 +144,44 @@ class MySQL extends Instance
 			return array('error' => 'Invalid Table');
 		}
 
-		$select = [$table.'.*'];
+		$select = ["`$table`.*"];
 		$joins = [];
 
 		if($fk[$table]) {
 			foreach($fk[$table] as $column => $meta) {
 
-				$joins[] = 'LEFT JOIN ' . $meta['table'] . ' ON ' . $meta['table'] . '.' . $meta['column'] . " = $table.$column";
+				$joins[] = 'LEFT JOIN `' . $meta['table'] . '` ON `' . $meta['table'] . '`.' . $meta['column'] . " = `$table`.$column";
 
-				// @todo look at the column comment to see what foreign field to use as the text
+				// @todo look at the column comment to see what foreign field to use as the text?
 
 				// Find the fields in the foreign table we can use to build a good name
 				// Cheat by using string columns since they probably are "title" or "name"
 				$fields = [];
 				foreach($columns[$meta['table']] as $field => $data) {
 					if($data['type'] == "text") {
-						$fields[] = $meta['table'] . '.' . $field;
+						$fields[] = '`' . $meta['table'] . '`.' . $field;
+					}
+				}
+				if( !$fields) {
+					// Fine, just use anything to give us an idea of the contents of this parent record
+					foreach($columns[$meta['table']] as $field => $data) {
+						$fields[] = '`' . $meta['table'] . '`.' . $field;
 					}
 				}
 
-				$select[] = 'CONCAT(SUBSTRING(' . join(', 1, 15), " - ", SUBSTRING(', $fields) . ', 1, 15)) as ' . $column . '_TEXT';
+				$size = floor(50 / count($fields));
+
+				$select[] = 'CONCAT(SUBSTRING(' . join(", 1, $size), ' - ', SUBSTRING(", $fields) . ", 1, $size)) as " . $column . '_TEXT';
 			}
 
 		}
 
-		$sql = 'SELECT ' . join(', ', $select) . " FROM $table";
+		$sql = 'SELECT ' . join(', ', $select) . " FROM `$table`";
 		if($joins) {
 			$sql .= " " . join(" ", $joins);
 		}
 
 		return $sql;
-		// $sql .= " LIMIT 5";
-		// print $sql . "\n\n";
-		//
-		// $result = $this->fetch($sql);
-		// print_r($result);
-		// die();
-
 	}
 
 	public function getColumns()
