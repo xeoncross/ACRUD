@@ -19,7 +19,7 @@ class MySQL extends Instance
 	{
 		return $this->fetch("SHOW TABLES", null, 0);
 	}
-	
+
 	public function getForeignKeys()
 	{
 		if($this->foreign_keys) {
@@ -35,7 +35,7 @@ class MySQL extends Instance
 
 		$tables = array();
 		foreach($result as $row) {
-			
+
 			if(empty($tables[$row->TABLE_NAME])) {
 				$tables[$row->TABLE_NAME] = array();
 			}
@@ -48,6 +48,121 @@ class MySQL extends Instance
 
 		return $this->foreign_keys = $tables;
 	}
+
+	public function getRelations()
+	{
+		if($this->relations) {
+			return $this->relations;
+		}
+
+		$sql = "SELECT * FROM information_schema.KEY_COLUMN_USAGE"
+			//. " WHERE table_schema = DATABASE() AND CONSTRAINT_NAME != 'PRIMARY'" // If you wanted indexes/uniques
+			. " WHERE table_schema = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL"
+			. " ORDER BY table_name, ordinal_position";
+
+		$result = $this->fetch($sql);
+
+		$relations = array();
+		foreach($result as $row) {
+
+			if(empty($relations[$row->REFERENCED_TABLE_NAME])) {
+				$relations[$row->REFERENCED_TABLE_NAME] = array();
+			}
+
+			// This method is simpler, has-many-through relationships get overwritten
+			// $relations[$row->REFERENCED_TABLE_NAME][$row->TABLE_NAME . '.' . $row->COLUMN_NAME] = $row->REFERENCED_COLUMN_NAME;
+			// $relations[$row->REFERENCED_TABLE_NAME][$row->TABLE_NAME] = $row->COLUMN_NAME;
+
+			if(empty($relations[$row->REFERENCED_TABLE_NAME][$row->TABLE_NAME])) {
+				$relations[$row->REFERENCED_TABLE_NAME][$row->TABLE_NAME] = array();
+			}
+
+			$relations[$row->REFERENCED_TABLE_NAME][$row->TABLE_NAME][$row->COLUMN_NAME] = $row->REFERENCED_COLUMN_NAME;
+		}
+
+		return $this->relations = $relations;
+	}
+
+	public function getRelationSQLMap() {
+
+		$results = $this->getRelations();
+
+		$relations = array();
+		foreach($results as $table => $row) {
+
+			if(empty($relations[$table])) {
+				$relations[$table] = array();
+			}
+
+			foreach ($row as $foreign_table => $meta) {
+				// Has many through relationship
+				if(count($meta) == 2) {
+
+					list($fk1, $fk2) = array_keys($meta);
+					list($pk1, $pk2) = array_values($meta);
+
+					// It can be either column
+					// $column_sql = "$foreign_table." . join(" = ? OR $foreign_table.", array_keys($meta)) . ' = ?';
+
+					$relations[$table][$table] = array(
+						'sql' => 'SELECT * FROM ' . $table
+							. ' LEFT JOIN ' . $foreign_table . ' ON ' . $foreign_table . '.' . $fk2
+							. ' = ' . $table . '.' . $pk2
+							. ' WHERE '
+							// . $column_sql;
+							. $foreign_table . '.' . $fk1. ' = ?',
+						'key' => $pk1
+					);
+
+					continue;
+				}
+
+				$relations[$table][$foreign_table] = array(
+					'sql' => 'SELECT * FROM ' . $foreign_table
+						. ' WHERE ' . key($meta) . ' = ?',
+					'key' => current($meta)
+				);
+
+			}
+		}
+
+		return $relations;
+	}
+
+
+	/*
+	public function getRelationSQL2() {
+
+		$sql = "SELECT * FROM information_schema.KEY_COLUMN_USAGE"
+			//. " WHERE table_schema = DATABASE() AND CONSTRAINT_NAME != 'PRIMARY'" // If you wanted indexes/uniques
+			. " WHERE table_schema = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL"
+			. " ORDER BY table_name, ordinal_position";
+
+		$result = $this->fetch($sql);
+
+		$relations = array();
+		foreach($result as $row) {
+
+			if(empty($relations[$row->REFERENCED_TABLE_NAME])) {
+				$relations[$row->REFERENCED_TABLE_NAME] = array();
+			}
+
+			// This method is simpler, has-many-through relationships get overwritten
+			// $relations[$row->REFERENCED_TABLE_NAME][$row->TABLE_NAME . '.' . $row->COLUMN_NAME] = $row->REFERENCED_COLUMN_NAME;
+			// $relations[$row->REFERENCED_TABLE_NAME][$row->TABLE_NAME] = $row->COLUMN_NAME;
+
+			$relations[$row->REFERENCED_TABLE_NAME][$row->TABLE_NAME][] =
+				'SELECT * FROM ' . $row->TABLE_NAME . ' WHERE '
+				. $row->TABLE_NAME . '.' . $row->COLUMN_NAME . ' = ?';
+
+				// . $row->REFERENCED_TABLE_NAME . '.' . $row->REFERENCED_COLUMN_NAME . ' = ' . $row->TABLE_NAME . '.' . $row->COLUMN_NAME;
+			// print "\n";
+
+		}
+
+		return $relations;
+	}
+	*/
 
 	public function getColumns()
 	{
@@ -69,7 +184,7 @@ class MySQL extends Instance
 			if($column) {
 
 				$type = $this->mapType($column->DATA_TYPE);
-				
+
 				// MySQL boolean == tinyint(1)
 				if($column->COLUMN_TYPE == 'tinyint(1)') {
 					$type = 'boolean';

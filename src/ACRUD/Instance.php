@@ -15,7 +15,7 @@
  * 			\PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION
  * 		)
  * 	);
- * 
+ *
  * 	$instance = \ACRUD\Instance::factory($pdo);
  *
  * @package    ACRUD
@@ -31,6 +31,7 @@ class Instance extends DB
 {
 	public $columns = null;
 	public $foreign_keys = null;
+	public $relations = null;
 	public $callbacks = array();
 
 	/**
@@ -183,7 +184,7 @@ class Instance extends DB
 	public function on($key, $closure)
 	{
 		$this->callbacks[$key] = $closure;
-		
+
 		return $this;
 	}
 
@@ -210,7 +211,7 @@ class Instance extends DB
 					$id = $data[$name];
 					unset($data[$name]);
 				}
-				
+
 				break;
 			}
 		}
@@ -219,7 +220,7 @@ class Instance extends DB
 		if(isset($columns['updated_at'])) {
 			$data['updated_at'] = date("Y-m-d H:i:s");
 		}
-		
+
 		// Not sure if we want to do this
 		// It's safer, but might break some special history-rewriting need
 		// Nah, just use another column if you want to do that
