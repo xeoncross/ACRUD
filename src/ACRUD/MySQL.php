@@ -130,40 +130,6 @@ class MySQL extends Instance
 	}
 
 
-	/*
-	public function getRelationSQL2() {
-
-		$sql = "SELECT * FROM information_schema.KEY_COLUMN_USAGE"
-			//. " WHERE table_schema = DATABASE() AND CONSTRAINT_NAME != 'PRIMARY'" // If you wanted indexes/uniques
-			. " WHERE table_schema = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL"
-			. " ORDER BY table_name, ordinal_position";
-
-		$result = $this->fetch($sql);
-
-		$relations = array();
-		foreach($result as $row) {
-
-			if(empty($relations[$row->REFERENCED_TABLE_NAME])) {
-				$relations[$row->REFERENCED_TABLE_NAME] = array();
-			}
-
-			// This method is simpler, has-many-through relationships get overwritten
-			// $relations[$row->REFERENCED_TABLE_NAME][$row->TABLE_NAME . '.' . $row->COLUMN_NAME] = $row->REFERENCED_COLUMN_NAME;
-			// $relations[$row->REFERENCED_TABLE_NAME][$row->TABLE_NAME] = $row->COLUMN_NAME;
-
-			$relations[$row->REFERENCED_TABLE_NAME][$row->TABLE_NAME][] =
-				'SELECT * FROM ' . $row->TABLE_NAME . ' WHERE '
-				. $row->TABLE_NAME . '.' . $row->COLUMN_NAME . ' = ?';
-
-				// . $row->REFERENCED_TABLE_NAME . '.' . $row->REFERENCED_COLUMN_NAME . ' = ' . $row->TABLE_NAME . '.' . $row->COLUMN_NAME;
-			// print "\n";
-
-		}
-
-		return $relations;
-	}
-	*/
-
 	public function getColumns()
 	{
 		if($this->columns) {
