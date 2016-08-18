@@ -129,6 +129,59 @@ class MySQL extends Instance
 		return $relations;
 	}
 
+	/**
+	 * Write the SQL to load a record and it's belongsTo relations
+	 * has-many-through relations are created elsewhere
+	 * This method should only be used to generate the first part of the
+	 * query as it is up to the calling code to add a LIMIT or WHERE id = ?
+	 */
+	public function loadRecordWithBelongsSQL($table) {
+
+		$columns = $this->getColumns();
+		$fk = $this->getForeignKeys();
+
+		if(empty($columns[$table])) {
+			return array('error' => 'Invalid Table');
+		}
+
+		$select = [$table.'.*'];
+		$joins = [];
+
+		if($fk[$table]) {
+			foreach($fk[$table] as $column => $meta) {
+
+				$joins[] = 'LEFT JOIN ' . $meta['table'] . ' ON ' . $meta['table'] . '.' . $meta['column'] . " = $table.$column";
+
+				// @todo look at the column comment to see what foreign field to use as the text
+
+				// Find the fields in the foreign table we can use to build a good name
+				// Cheat by using string columns since they probably are "title" or "name"
+				$fields = [];
+				foreach($columns[$meta['table']] as $field => $data) {
+					if($data['type'] == "text") {
+						$fields[] = $meta['table'] . '.' . $field;
+					}
+				}
+
+				$select[] = 'CONCAT(SUBSTRING(' . join(', 1, 15), " - ", SUBSTRING(', $fields) . ', 1, 15)) as ' . $column . '_TEXT';
+			}
+
+		}
+
+		$sql = 'SELECT ' . join(', ', $select) . " FROM $table";
+		if($joins) {
+			$sql .= " " . join(" ", $joins);
+		}
+
+		return $sql;
+		// $sql .= " LIMIT 5";
+		// print $sql . "\n\n";
+		//
+		// $result = $this->fetch($sql);
+		// print_r($result);
+		// die();
+
+	}
 
 	public function getColumns()
 	{
