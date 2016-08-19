@@ -83,6 +83,7 @@ class MySQL extends Instance
 		return $this->relations = $relations;
 	}
 
+	/*
 	public function getRelationSQLMap() {
 
 		$results = $this->getRelations();
@@ -128,6 +129,7 @@ class MySQL extends Instance
 
 		return $relations;
 	}
+	*/
 
 	/**
 	 * Write the SQL to load a record and it's belongsTo relations
@@ -151,18 +153,32 @@ class MySQL extends Instance
 			foreach($fk[$table] as $column => $meta) {
 
 				$joins[] = 'LEFT JOIN `' . $meta['table'] . '` ON `' . $meta['table'] . '`.' . $meta['column'] . " = `$table`.$column";
+				$fields = [];
 
 				// @todo look at the column comment to see what foreign field to use as the text?
 
-				// Find the fields in the foreign table we can use to build a good name
-				// Cheat by using string columns since they probably are "title" or "name"
-				$fields = [];
-				foreach($columns[$meta['table']] as $field => $data) {
-					if($data['type'] == "text") {
-						$fields[] = '`' . $meta['table'] . '`.' . $field;
+				// Certain text fields contain the most important information for a row. Lets look for them.
+				$id_names = array('name', 'username', 'first_name', 'last_name', 'email');
+
+				foreach($id_names as $id_name) {
+					if(isset($columns[$meta['table']][$id_name])) {
+						if($columns[$meta['table']][$id_name]['type'] == "text") {
+							$fields[] = '`' . $meta['table'] . '`.' . $id_name;
+						}
 					}
 				}
-				if( !$fields) {
+
+				// Find the fields in the foreign table we can use to build a good name
+				// Cheat by using string columns since they probably are "title" or "name"
+				if( ! $fields) {
+					foreach($columns[$meta['table']] as $field => $data) {
+						if($data['type'] == "text") {
+							$fields[] = '`' . $meta['table'] . '`.' . $field;
+						}
+					}
+				}
+
+				if( ! $fields) {
 					// Fine, just use anything to give us an idea of the contents of this parent record
 					foreach($columns[$meta['table']] as $field => $data) {
 						$fields[] = '`' . $meta['table'] . '`.' . $field;
