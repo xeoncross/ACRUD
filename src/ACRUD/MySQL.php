@@ -149,7 +149,7 @@ class MySQL extends Instance
 		$select = ["`$table`.*"];
 		$joins = [];
 
-		if($fk[$table]) {
+		if(isset($fk[$table])) {
 			foreach($fk[$table] as $column => $meta) {
 
 				$joins[] = 'LEFT JOIN `' . $meta['table'] . '` ON `' . $meta['table'] . '`.' . $meta['column'] . " = `$table`.$column";
