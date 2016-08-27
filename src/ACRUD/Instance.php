@@ -74,16 +74,22 @@ class Instance extends DB
 	/**
 	 * Validate the data given aginst what is know about the columns and foreign keys
 	 *
+	 * @param string $table
 	 * @param array $data
-	 * @param array $columns
 	 * @param array $error_messages
-	 * @param array $foreign_keys
+	 * @param array $columns
 	 * @return array
 	 */
 	public function validate($table, array $data, array $error_messages, array $columns = null)
 	{
 		if( ! $columns) {
-			$this->columns = $this->getColumns();
+			$columns = $this->getColumns();
+
+			if( ! isset($columns[$table])) {
+					throw new Exception("Table $table doesn't exist");
+			}
+
+			$columns = $columns[$table];
 		}
 
 		$errors = array();
@@ -118,10 +124,16 @@ class Instance extends DB
 				continue;
 			}
 
+			if($column['type'] === 'boolean') {
+				if(in_array($data[$name], array('0', '1', 0, 1))) {
+					continue;
+				}
+			}
+
 			// The column can only be empty if there is a default or null is allowed
 			if(empty($data[$name]) AND ! (isset($data[$name]) AND $data[$name] === "0")) {
 
-				if( ! $column['default'] AND ! $column['nullable']) {
+				if( ! $column['default'] AND ! $column['nullable']) { // AND $column['type'] != 'boolean') {
 					$errors[$name] = sprintf($error_messages['required'], $name, $table);
 				}
 
@@ -144,7 +156,7 @@ class Instance extends DB
 			// Only digits can be saved in an integer column
 			if(strpos($column['type'], 'int') !== FALSE) {
 
-				if( ! ctype_digit($data[$name])) {
+				if( ! ctype_digit($data[$name]) AND !is_int($data[$name])) {
 					$errors[$name] = sprintf($error_messages['integer'], $name, $table);
 					continue;
 				}

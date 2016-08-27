@@ -158,7 +158,9 @@ class MySQL extends Instance
 				// @todo look at the column comment to see what foreign field to use as the text?
 
 				// Certain text fields contain the most important information for a row. Lets look for them.
-				$id_names = array('name', 'username', 'first_name', 'last_name', 'email');
+				$id_names = array(
+					'name', 'username', 'first_name', 'firstname', 'last_name', 'lastname'
+				);
 
 				foreach($id_names as $id_name) {
 					if(isset($columns[$meta['table']][$id_name])) {
