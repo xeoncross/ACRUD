@@ -135,11 +135,18 @@ class MySQL extends Instance
 	/**
 	 * Guess at the best text columns to represent a "name" for the table
 	 * For example, like "username" for a user.
+	 *
+	 * @todo look at the table.column->comment instead?
 	 */
-	public function nameColumnsForTable($table) {
+	public function nameColumnsForTable($table, $alias = null) {
 
 		$columns = $this->getColumns();
+		$alias = $alias ? $alias : $table;
 		$fields = [];
+
+		$format = function($field) use(&$alias) {
+			return "`$alias`.`$field`";
+		};
 
 		// Certain text fields contain the most important information for a row.
 		$name_fields = array(
@@ -156,7 +163,7 @@ class MySQL extends Instance
 		// User fields
 		foreach($columns[$table] as $field => $meta) {
       if($meta['type'] == 'text' AND in_array($field, $name_fields)) {
-        $fields[$field] = $field;
+        $fields[$field] = $format($field);
       }
     }
 
@@ -172,7 +179,7 @@ class MySQL extends Instance
 
 		foreach($columns[$table] as $field => $meta) {
       if($meta['type'] == 'text' AND in_array($field, $name_fields)) {
-        $fields[$field] = $field;
+        $fields[$field] = $format($field);
       }
     }
 
@@ -183,7 +190,19 @@ class MySQL extends Instance
 		$x = 0;
 		foreach($columns[$table] as $field => $data) {
 			if($data['type'] == "text" AND $data['length'] <= 255) {
-				$fields[$field] = $field;
+				$fields[$field] = $format($field);
+				if($x++ > 2) break;
+			}
+		}
+
+		if(count($fields) >= 2) {
+			return $fields;
+		}
+
+		$x = 0;
+		foreach($columns[$table] as $field => $data) {
+			if($data['type'] == "text") {
+				$fields[$field] = $format($field);
 				if($x++ > 2) break;
 			}
 		}
@@ -195,7 +214,8 @@ class MySQL extends Instance
 		// Fine, just use anything to give us an idea of the contents of this parent record
 		$x = 0;
 		foreach($columns[$table] as $field => $data) {
-			$fields[$field] = $field;
+			if($field === 'id') continue;
+			$fields[$field] = $format($field);
 			if($x++ > 2) break;
 		}
 
@@ -209,7 +229,9 @@ class MySQL extends Instance
 	 * This method should only be used to generate the first part of the
 	 * query as it is up to the calling code to add a LIMIT or WHERE id = ?
 	 */
-	public function loadRecordWithBelongsSQL($table) {
+	public function loadRecordWithBelongsSQL($table, array $ignore_tables = null, $length = 50) {
+
+		// var_dump(func_get_args());
 
 		$columns = $this->getColumns();
 		$fk = $this->getForeignKeys();
@@ -225,58 +247,26 @@ class MySQL extends Instance
 		if(isset($fk[$table])) {
 			foreach($fk[$table] as $column => $meta) {
 
-				if($meta['table'] != 'church') continue;
+				if($ignore_tables AND in_array($meta['table'], $ignore_tables)) {
+					// print "Skipping " . $meta['table'] . "\n";die();
+					continue;
+				}
+				// var_dump($ignore_tables);die();
 
 				$x++;
 
 				$alias = "t$x";
 				$joins[] = 'LEFT JOIN `' . $meta['table'] . "` $alias ON $alias." . $meta['column'] . " = `$table`.$column";
 				// $joins[] = 'LEFT JOIN `' . $meta['table'] . '` ON `' . $meta['table'] . '`.' . $meta['column'] . " = `$table`.$column";
-				$fields = [];
 
-				// @todo look at the column comment to see what foreign field to use as the text?
+				$fields = $this->nameColumnsForTable($meta['table'], $alias);
 
-				// Certain text fields contain the most important information for a row. Lets look for them.
-				$id_names = array(
-					'name', 'username', 'first_name', 'firstname', 'last_name', 'lastname'
-				);
+				$size = floor($length / count($fields));
 
-				// print "\n" . $meta['table'] . "\n";
-				// print_r($columns[$meta['table']]);
+				// @todo handle null
+				$select[] = 'CONCAT_WS(" - ", SUBSTRING(' . join(", 1, $size), SUBSTRING(", $fields) . ", 1, $size)) as " . $column . '_TEXT';
 
-				foreach($id_names as $id_name) {
-					if(isset($columns[$meta['table']][$id_name])) {
-						if($columns[$meta['table']][$id_name]['type'] == "text") {
-							// $fields[] = '`' . $meta['table'] . '`.' . $id_name;
-							$fields[] = $alias .  '.' . $id_name;
-						}
-					}
-				}
-
-				// Find the fields in the foreign table we can use to build a good name
-				// Cheat by using string columns since they probably are "title" or "name"
-				if( ! $fields) {
-					$x = 0;
-					foreach($columns[$meta['table']] as $field => $data) {
-						if($data['type'] == "text") {
-							// $fields[] = '`' . $meta['table'] . '`.' . $field;
-							$fields[] = $alias .  '.' . $field;
-							if($x++ > 4) break;
-						}
-					}
-				}
-
-				if( ! $fields) {
-					// Fine, just use anything to give us an idea of the contents of this parent record
-					foreach($columns[$meta['table']] as $field => $data) {
-						// $fields[] = '`' . $meta['table'] . '`.' . $field;
-						$fields[] = $alias .  '.' . $field;
-					}
-				}
-
-				$size = floor(50 / count($fields));
-
-				$select[] = 'CONCAT(SUBSTRING(' . join(", 1, $size), ' - ', SUBSTRING(", $fields) . ", 1, $size)) as " . $column . '_TEXT';
+				// $select[] = 'CONCAT(SUBSTRING(COALESCE(' . join(", ''), 1, $size), ' - ', SUBSTRING(COALESCE(", $fields) . ", ''), 1, $size)) as " . $column . '_TEXT';
 			}
 
 		}
